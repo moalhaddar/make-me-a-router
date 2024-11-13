@@ -1,0 +1,21 @@
+#!/usr/sbin/nft -f
+
+destroy table inet make_me_a_router
+
+# Replace subnet if necessarry.
+define subnet = { 192.168.101.103/32 }
+# Replace interface name if necessarry, find it by using "ip address"
+define interfaces = { "enp8s0" }
+
+table inet make_me_a_router {
+	chain forward {
+		type filter hook forward priority filter;
+		iifname $interfaces ip saddr $subnet counter accept
+	}
+
+	chain post {
+		type nat hook postrouting priority srcnat;
+		ip saddr $subnet masquerade
+	}
+
+}
