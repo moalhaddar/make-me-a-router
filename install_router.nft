@@ -3,20 +3,26 @@
 destroy table inet make_me_a_router
 
 # Replace subnet if necessarry.
-define subnet = { 192.168.101.0/24 }
+define subnet = { 101.101.101.0/24 }
 # Replace interface name if necessarry, find it by using "ip address"
 define interfaces = { "enp8s0" }
 
 table inet make_me_a_router {
+	chain pre {
+		type nat hook prerouting priority dstnat;
+		iifname $interfaces ip daddr 192.168.101.101 udp dport 53 counter dnat to 127.0.0.54:53 comment "DNAT for DNS resolver, i don't want to expose it"
+	}
+
 	chain forward {
 		type filter hook forward priority filter; policy drop;
-		iifname $interfaces ip saddr $subnet counter accept
-		iifname $interfaces ip daddr $subnet counter accept
+		iifname $interfaces ip saddr $subnet counter accept comment "Packets from the subnet"
+		iifname $interfaces ip daddr $subnet counter accept comment "Packets to the subnet"
+		counter comment "Count all dropped packets"
+		log prefix "DROP FORWARD: " flags all comment "Log dropped packets, available on dmesg"
 	}
 
 	chain post {
 		type nat hook postrouting priority srcnat; policy accept;
 		ip saddr $subnet counter masquerade
 	}
-
 }
